@@ -1,0 +1,7 @@
+SQL-Ecommerce-Project/
+├── schema.sql
+├── sample_data.sql
+├── queries.sql
+├── views.sql
+├── triggers.sql
+├── README.md
