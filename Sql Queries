@@ -1,0 +1,148 @@
+Contributing
+PRs and feedback welcome!
+
+pgsql
+Copy
+Edit
+
+---
+
+## 📄 `schema.sql`
+
+```sql
+CREATE TABLE Users (
+    user_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    join_date DATE
+);
+
+CREATE TABLE Categories (
+    category_id INT PRIMARY KEY,
+    name VARCHAR(100)
+);
+
+CREATE TABLE Products (
+    product_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    price DECIMAL(10, 2),
+    stock INT,
+    category_id INT,
+    FOREIGN KEY (category_id) REFERENCES Categories(category_id)
+);
+
+CREATE TABLE Orders (
+    order_id INT PRIMARY KEY,
+    user_id INT,
+    order_date DATE,
+    status VARCHAR(50),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+);
+
+CREATE TABLE Order_Items (
+    order_id INT,
+    product_id INT,
+    quantity INT,
+    PRIMARY KEY (order_id, product_id),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES Products(product_id)
+);
+
+CREATE TABLE Payments (
+    payment_id INT PRIMARY KEY,
+    order_id INT,
+    amount DECIMAL(10, 2),
+    payment_date DATE,
+    status VARCHAR(50),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+📄 sample_data.sql
+sql
+Copy
+Edit
+-- Users
+INSERT INTO Users VALUES (1, 'Alice', 'alice@gmail.com', '2023-01-15');
+INSERT INTO Users VALUES (2, 'Bob', 'bob@gmail.com', '2023-02-01');
+INSERT INTO Users VALUES (3, 'Charlie', 'charlie@gmail.com', '2023-03-10');
+
+-- Categories
+INSERT INTO Categories VALUES (1, 'Electronics');
+INSERT INTO Categories VALUES (2, 'Clothing');
+
+-- Products
+INSERT INTO Products VALUES (101, 'Laptop', 800.00, 10, 1);
+INSERT INTO Products VALUES (102, 'Headphones', 150.00, 25, 1);
+INSERT INTO Products VALUES (103, 'T-Shirt', 25.00, 50, 2);
+
+-- Orders
+INSERT INTO Orders VALUES (1001, 1, '2023-04-01', 'Pending');
+INSERT INTO Orders VALUES (1002, 2, '2023-04-03', 'Pending');
+
+-- Order_Items
+INSERT INTO Order_Items VALUES (1001, 101, 1);
+INSERT INTO Order_Items VALUES (1001, 102, 2);
+INSERT INTO Order_Items VALUES (1002, 103, 3);
+
+-- Payments
+INSERT INTO Payments VALUES (201, 1001, 1100.00, '2023-04-02', 'Success');
+INSERT INTO Payments VALUES (202, 1002, 75.00, '2023-04-04', 'Failed');
+📄 queries.sql
+sql
+Copy
+Edit
+-- Total revenue
+SELECT SUM(amount) AS total_revenue
+FROM Payments
+WHERE status = 'Success';
+
+-- Top customers
+SELECT u.name, SUM(p.amount) AS total_spent
+FROM Users u
+JOIN Orders o ON u.user_id = o.user_id
+JOIN Payments p ON o.order_id = p.order_id
+WHERE p.status = 'Success'
+GROUP BY u.name
+ORDER BY total_spent DESC;
+
+-- Best-selling products
+SELECT pr.name, SUM(oi.quantity) AS total_sold
+FROM Products pr
+JOIN Order_Items oi ON pr.product_id = oi.product_id
+GROUP BY pr.name
+ORDER BY total_sold DESC;
+📄 views.sql
+sql
+Copy
+Edit
+CREATE VIEW view_top_customers AS
+SELECT u.name, SUM(p.amount) AS total_spent
+FROM Users u
+JOIN Orders o ON u.user_id = o.user_id
+JOIN Payments p ON o.order_id = p.order_id
+WHERE p.status = 'Success'
+GROUP BY u.name
+ORDER BY total_spent DESC;
+
+CREATE VIEW view_best_selling_products AS
+SELECT pr.name, SUM(oi.quantity) AS total_sold
+FROM Products pr
+JOIN Order_Items oi ON pr.product_id = oi.product_id
+GROUP BY pr.name
+ORDER BY total_sold DESC;
+📄 triggers.sql
+sql
+Copy
+Edit
+DELIMITER //
+CREATE TRIGGER update_order_status
+AFTER INSERT ON Payments
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'Success' THEN
+        UPDATE Orders
+        SET status = 'Completed'
+        WHERE order_id = NEW.order_id;
+    END IF;
+END;
+//
+DELIMITER ;
